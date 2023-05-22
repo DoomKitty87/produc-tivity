@@ -10,12 +10,14 @@ using namespace std;
 class Board {
   public:
     string name;
+    vector<string> items;
 };
 
 void create_board() {
   cout << "What would you like to name your board?" << endl;
   string board_name;
-  cin >> board_name;
+  cin.sync();
+  getline(cin, board_name);
   //Create a new board
   Board new_board = Board();
   new_board.name = board_name;
@@ -53,8 +55,82 @@ void create_board() {
     board_file.close();
   }
 
-
   cout << "Board created! (" << board_name << ")" << endl;
+}
+
+void board_opened(int index) {
+  ifstream board_file;
+  string board_data;
+  board_file.open("boards\\" + to_string(index - 1) + ".txt");
+  getline(board_file, board_data);
+  board_file.close();
+  Board board = Board();
+  string board_name;
+  int stop_index = 0;
+  for (int i = 0; i < board_data.length(); i++) {
+    if (board_data[i] == ':') {
+      board_name = board_data.substr(0, i);
+      stop_index = i;
+      break;
+    }
+  }
+  board.name = board_name;
+
+  vector<string> board_items = vector<string>();
+  for (int i = 0; i < board_data.length(); i++) {
+    if (board_data[i] == '|') {
+      board_items.push_back(board_data.substr(stop_index + 1, i - stop_index - 1));
+      stop_index = i;
+    }
+  }
+  board.items = board_items;
+  //Load board from file
+
+  while (true) {
+    cout << "1. Add item to board 2. Check item off of list 3. View active items 4. Exit board" << endl;
+    string user_choice;
+    cin >> user_choice;
+    while (user_choice != "1" && user_choice != "2" && user_choice != "3" && user_choice != "4") {
+      cout << "Invalid input. Please try again." << endl;
+      cin >> user_choice;
+    }
+
+    if (user_choice == "1") {
+      string item_name;
+      cout << "Please enter a name for the new item." << endl;
+      cin.sync();
+      getline(cin, item_name);
+      board.items.push_back(item_name);
+    }
+    else if (user_choice == "2") {
+      string item_index;
+      cout << "Which item have you finished? (enter number, not title)" << endl;
+      cin >> item_index;
+      board.items.erase(next(board.items.begin(), stoi(item_index) - 1));
+    }
+    else if (user_choice == "3") {
+      for (int i = 0; i < board.items.size(); i++) {
+        cout << to_string(i + 1) + ". " + board.items[i] << endl;
+      }
+    }
+    else if (user_choice == "4") {
+      break;
+    }
+  }
+
+  board_data = board.name + ":";
+
+  for (int i = 0; i < board.items.size(); i++) {
+    board_data += board.items[i] + "|";
+  }
+
+  ofstream board_file_out;
+  board_file_out.open("boards\\" + to_string(index - 1) + ".txt", ofstream::trunc);
+  board_file_out << board_data;
+  board_file_out.close();
+  //Save board to file
+
+  cout << "Returning to main menu." << endl;
 }
 
 void open_board() {
@@ -65,14 +141,17 @@ void open_board() {
   data_file >> board_count;
   data_file.close();
   int boards = stoi(board_count);
-  if (boards == 0) cout << "No boards created. Please create a board first.";
+  if (boards == 0) {
+    cout << "No boards created. Please create a board first." << endl;
+    return;
+  }
   for (int i = 0; i < boards; i++) {
     string board_name;
     ifstream board_file;
     board_file.open("boards\\" + to_string(i) + ".txt");
     board_file >> board_name;
     board_file.close();
-    for (int j = 0; i < board_name.length(); j++) {
+    for (int j = 0; j < board_name.length(); j++) {
       if (board_name[j] == ':') {
         board_name = board_name.substr(0, j);
         break;
@@ -80,6 +159,10 @@ void open_board() {
     }
     cout << to_string(i + 1) + ". " + board_name << endl;
   }
+  string to_open;
+  cin >> to_open;
+  if (stoi(to_open) > boards - 1) return;
+  board_opened(stoi(to_open));
 }
 
 string menu_choice() {
@@ -135,4 +218,3 @@ int main() {
   while (true) main_menu();
   //Run main menu
 }
-
